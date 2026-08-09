@@ -1,0 +1,142 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  # vcpkg.json makes this the default in recent vcpkg, but keep it explicit
+  # for older toolsets.
+  VCPKG_FEATURE_FLAGS: manifests
+
+jobs:
+  # The repo's own Windows presets (CMakePresets.json) pin an exact MSVC
+  # toolset patch version ("version=14.50.35717") that isn't guaranteed to
+  # exist anywhere but the original dev machine (confirmed: it doesn't
+  # match locally either), so these legs use the "Visual Studio 18 2026"
+  # generator directly against CMakeLists.txt without a toolset override,
+  # rather than going through `cmake --preset`.
+  #
+  # Note: an earlier attempt used ilammy/msvc-dev-cmd + Ninja to sidestep
+  # generator-version matching entirely, but that action's environment
+  # activation sets its own VCPKG_ROOT pointing at VS's bundled (non-git)
+  # vcpkg copy, which this repo's CMakeLists.txt then tries to `git pull`
+  # and fails. The VS generator doesn't need a pre-activated dev
+  # environment, so it doesn't hit that.
+  #
+  # Also: -DCMAKE_TOOLCHAIN_FILE can't point directly at
+  # .vcpkg/scripts/buildsystems/vcpkg.cmake -- CMake resolves that argument
+  # at command-line parse time, before CMakeLists.txt's own vcpkg clone step
+  # has run, so the not-yet-existing path is silently dropped ("Ignoring
+  # extra path from command line"), leaving vcpkg's toolchain never
+  # included at all. Pointing at the repo's own
+  # cmake/windows-x86-64/toolchain.cmake instead works because that file
+  # already exists in git; its include() of vcpkg.cmake is only evaluated
+  # later, once project() runs -- by which point the clone has happened.
+  windows:
+    name: Windows-${{ matrix.name }}
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: MSVC
+            cc: cl
+            cxx: cl
+            toolset: ""
+          - name: ClangCL
+            cc: clang-cl
+            cxx: clang-cl
+            toolset: "-T ClangCL"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # cmake_minimum_required(VERSION 4.2) is newer than what's preinstalled
+      # on GitHub-hosted runners.
+      - name: Install CMake >= 4.2
+        uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: "latest"
+
+      - name: Cache vcpkg
+        uses: actions/cache@v4
+        with:
+          path: |
+            .vcpkg
+            ~/AppData/Local/vcpkg/archives
+          key: vcpkg-windows-x64-windows-${{ hashFiles('vcpkg.json') }}
+          restore-keys: |
+            vcpkg-windows-x64-windows-
+
+      - name: Configure
+        shell: pwsh
+        # --toolchain (not -DCMAKE_TOOLCHAIN_FILE=) with an absolute path:
+        # -D was truncating the value at its last dot ("Ignoring extra path
+        # from command line: '.cmake'", leaving CMAKE_TOOLCHAIN_FILE set to
+        # the extension-less "cmake/windows-x86-64/toolchain" and failing
+        # with "Could not find toolchain file").
+        run: >
+          cmake -B build -S .
+          -G "Visual Studio 18 2026" -A x64 ${{ matrix.toolset }}
+          -DCMAKE_C_COMPILER=${{ matrix.cc }} -DCMAKE_CXX_COMPILER=${{ matrix.cxx }}
+          --toolchain "${{ github.workspace }}/cmake/windows-x86-64/toolchain.cmake"
+
+      - name: Build
+        run: cmake --build build --config Release --parallel
+
+      - name: Test
+        working-directory: build
+        run: ctest -C Release --output-on-failure --parallel
+
+  # Linux presets pin plain "gcc"/"g++" or "clang"/"clang++" with a generic
+  # Unix Makefiles generator, which matches ubuntu-latest out of the box --
+  # so these legs run through the repo's real presets.
+  linux:
+    name: Linux-${{ matrix.name }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: GCC
+            preset: linux-x86-64-release
+          - name: Clang
+            preset: linux-x86-64-static-analysis
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Clang (Linux-Clang leg)
+        if: matrix.name == 'Clang'
+        run: sudo apt-get update && sudo apt-get install -y clang
+
+      # cmake_minimum_required(VERSION 4.2) is newer than what's preinstalled
+      # on GitHub-hosted runners.
+      - name: Install CMake >= 4.2
+        uses: lukka/get-cmake@latest
+        with:
+          cmakeVersion: "latest"
+
+      - name: Cache vcpkg
+        uses: actions/cache@v4
+        with:
+          path: |
+            .vcpkg
+            ~/.cache/vcpkg/archives
+          key: vcpkg-linux-x64-linux-${{ hashFiles('vcpkg.json') }}
+          restore-keys: |
+            vcpkg-linux-x64-linux-
+
+      - name: Configure
+        run: cmake --preset ${{ matrix.preset }}
+
+      - name: Build
+        run: cmake --build --preset ${{ matrix.preset }}
+
+      - name: Test
+        run: ctest --preset ${{ matrix.preset }}

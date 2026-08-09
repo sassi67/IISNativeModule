@@ -1,0 +1,559 @@
+{
+    "version": 3,
+    "cmakeMinimumRequired": {
+        "major": 4,
+        "minor": 2,
+        "patch": 0
+    },
+    "configurePresets": [
+        {
+            "name": "default",
+            "hidden": true,
+            "binaryDir": "${sourceDir}/_build/${presetName}",
+            "cacheVariables": {
+                "CMAKE_PRESET": {
+                    "type": "STRING",
+                    "value": "${presetName}"
+                }
+            }
+        },
+        {
+            "name": "debug",
+            "hidden": true,
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": {
+                    "type": "STRING",
+                    "value": "Debug"
+                }
+            }
+        },
+        {
+            "name": "release",
+            "hidden": true,
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": {
+                    "type": "STRING",
+                    "value": "Release"
+                }
+            }
+        },
+        {
+            "name": "vs2026",
+            "hidden": true,
+            "generator": "Visual Studio 18 2026",
+            "cacheVariables": {
+                "CMAKE_SYSTEM_VERSION": {
+                    "type": "STRING",
+                    "value": "10.0.26100"
+                }
+            },
+            "environment": {
+                "ClearDevCommandPromptEnvVars": "false"
+            }
+        },
+        {
+            "name": "windows",
+            "hidden": true,
+            "inherits": [
+                "default",
+                "vs2026"
+            ],
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            }
+        },
+        {
+            "name": "linux",
+            "hidden": true,
+            "inherits": [
+                "default"
+            ],
+            "generator": "Unix Makefiles",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Linux"
+            }
+        },
+        {
+            "name": "32-bit",
+            "hidden": true,
+            "architecture": {
+                "value": "Win32",
+                "strategy": "set"
+            }
+        },
+        {
+            "name": "64-bit",
+            "hidden": true,
+            "architecture": {
+                "value": "x64",
+                "strategy": "set"
+            }
+        },
+        {
+            "name": "windows-x86-32-debug",
+            "inherits": [
+                "windows",
+                "32-bit",
+                "debug"
+            ],
+            "toolchainFile": "${sourceDir}/cmake/windows-x86-32/toolchain.cmake"
+        },
+        {
+            "name": "windows-x86-32-release",
+            "inherits": [
+                "windows",
+                "32-bit",
+                "release"
+            ],
+            "toolchainFile": "${sourceDir}/cmake/windows-x86-32/toolchain.cmake"
+        },
+        {
+            "name": "windows-x86-64-debug",
+            "inherits": [
+                "windows",
+                "64-bit",
+                "debug"
+            ],
+            "toolchainFile": "${sourceDir}/cmake/windows-x86-64/toolchain.cmake"
+        },
+        {
+            "name": "windows-x86-64-release",
+            "inherits": [
+                "windows",
+                "64-bit",
+                "release"
+            ],
+            "toolchainFile": "${sourceDir}/cmake/windows-x86-64/toolchain.cmake"
+        },
+        {
+            "name": "windows-x86-64-clang",
+            "inherits": [
+                "windows",
+                "64-bit",
+                "debug"
+            ],
+            "toolset": {
+                "strategy": "set",
+                "value": "ClangCL"
+            },
+            "toolchainFile": "${sourceDir}/cmake/windows-x86-64-clang/toolchain.cmake"
+        },
+        {
+            "name": "windows-x86-64-coverage",
+            "inherits": [
+                "windows",
+                "64-bit",
+                "debug"
+            ],
+            "toolset": {
+                "strategy": "set",
+                "value": "ClangCL"
+            },
+            "cacheVariables": {
+                "ENABLE_COVERAGE": {
+                    "type": "BOOL",
+                    "value": "ON"
+                }
+            },
+            "toolchainFile": "${sourceDir}/cmake/windows-x86-64-coverage/toolchain.cmake"
+        },
+        {
+            "name": "windows-x86-64-static-analysis",
+            "inherits": [
+                "windows",
+                "debug"
+            ],
+            "generator": "Ninja",
+            "architecture": {
+                "strategy": "external",
+                "value": "x64"
+            },
+            "toolset": {
+                "strategy": "external",
+                "value": "host=x64,version=14.50"
+            },
+            "cacheVariables": {
+                "CMAKE_CXX_FLAGS": {
+                    "type": "STRING",
+                    "value": "/W4 -Wall -Wextra -Wshadow -Wconversion"
+                },
+                "CMAKE_EXPORT_COMPILE_COMMANDS": {
+                    "type": "BOOL",
+                    "value": "ON"
+                }
+            },
+            "toolchainFile": "${sourceDir}/cmake/windows-x86-64-static-analysis/toolchain.cmake"
+        },
+        {
+            "name": "linux-x86-64-debug",
+            "inherits": [
+                "linux",
+                "debug"
+            ],
+            "toolchainFile": "${sourceDir}/cmake/linux-x86-64/toolchain.cmake"
+        },
+        {
+            "name": "linux-x86-64-release",
+            "inherits": [
+                "linux",
+                "release"
+            ],
+            "toolchainFile": "${sourceDir}/cmake/linux-x86-64/toolchain.cmake"
+        },
+        {
+            "name": "linux-x86-32-debug",
+            "inherits": [
+                "linux",
+                "debug"
+            ],
+            "toolchainFile": "${sourceDir}/cmake/linux-x86-32/toolchain.cmake"
+        },
+        {
+            "name": "linux-x86-32-release",
+            "inherits": [
+                "linux",
+                "release"
+            ],
+            "toolchainFile": "${sourceDir}/cmake/linux-x86-32/toolchain.cmake"
+        },
+        {
+            "name": "linux-x86-64-static-analysis",
+            "inherits": [
+                "linux",
+                "debug"
+            ],
+            "cacheVariables": {
+                "CMAKE_CXX_FLAGS": {
+                    "type": "STRING",
+                    "value": "-Wall -Wextra -Wshadow -Wconversion"
+                },
+                "CMAKE_EXPORT_COMPILE_COMMANDS": {
+                    "type": "BOOL",
+                    "value": "ON"
+                }
+            },
+            "toolchainFile": "${sourceDir}/cmake/linux-x86-64-static-analysis/toolchain.cmake"
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "default",
+            "hidden": true,
+            "jobs": 12
+        },
+        {
+            "name": "default-hide",
+            "hidden": true,
+            "condition": {
+                "type": "equals",
+                "lhs": "$penv{ENABLE_ALL_PRESETS}",
+                "rhs": "true"
+            }
+        },
+        {
+            "name": "windows",
+            "hidden": true,
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            },
+            "nativeToolOptions": [
+                "/property:VCToolsVersion=14.44.35207"
+            ]
+        },
+        {
+            "name": "linux",
+            "hidden": true,
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Linux"
+            }
+        },
+        {
+            "name": "release",
+            "hidden": true,
+            "configuration": "Release"
+        },
+        {
+            "name": "debug",
+            "hidden": true,
+            "configuration": "Debug"
+        },
+        {
+            "name": "windows-x86-32-debug",
+            "configurePreset": "windows-x86-32-debug",
+            "inherits": [
+                "debug",
+                "windows",
+                "default"
+            ]
+        },
+        {
+            "name": "windows-x86-32-release",
+            "configurePreset": "windows-x86-32-release",
+            "inherits": [
+                "release",
+                "windows",
+                "default"
+            ]
+        },
+        {
+            "name": "windows-x86-64-debug",
+            "configurePreset": "windows-x86-64-debug",
+            "inherits": [
+                "debug",
+                "windows",
+                "default"
+            ]
+        },
+        {
+            "name": "windows-x86-64-release",
+            "configurePreset": "windows-x86-64-release",
+            "inherits": [
+                "release",
+                "windows",
+                "default"
+            ]
+        },
+        {
+            "name": "windows-x86-64-clang",
+            "configurePreset": "windows-x86-64-clang",
+            "inherits": [
+                "debug",
+                "windows",
+                "default"
+            ]
+        },
+        {
+            "name": "windows-x86-64-coverage",
+            "configurePreset": "windows-x86-64-coverage",
+            "inherits": [
+                "debug",
+                "windows",
+                "default"
+            ]
+        },
+        {
+            "name": "windows-x86-64-static-analysis",
+            "configurePreset": "windows-x86-64-static-analysis",
+            "inherits": [
+                "debug",
+                "default"
+            ],
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            }
+        },
+        {
+            "name": "linux-x86-64-debug",
+            "configurePreset": "linux-x86-64-debug",
+            "inherits": [
+                "debug",
+                "linux",
+                "default"
+            ]
+        },
+        {
+            "name": "linux-x86-64-release",
+            "configurePreset": "linux-x86-64-release",
+            "inherits": [
+                "release",
+                "linux",
+                "default"
+            ]
+        },
+        {
+            "name": "linux-x86-32-debug",
+            "configurePreset": "linux-x86-32-debug",
+            "inherits": [
+                "debug",
+                "linux",
+                "default"
+            ]
+        },
+        {
+            "name": "linux-x86-32-release",
+            "configurePreset": "linux-x86-32-release",
+            "inherits": [
+                "release",
+                "linux",
+                "default"
+            ]
+        },
+        {
+            "name": "linux-x86-64-static-analysis",
+            "configurePreset": "linux-x86-64-static-analysis",
+            "inherits": [
+                "debug",
+                "linux",
+                "default"
+            ]
+        }
+    ],
+    "testPresets": [
+        {
+            "name": "default",
+            "hidden": true,
+            "output": {
+                "outputOnFailure": false
+            },
+            "execution": {
+                "timeout": 300,
+                "jobs": 16
+            }
+        },
+        {
+            "name": "default-hide",
+            "hidden": true,
+            "condition": {
+                "type": "equals",
+                "lhs": "$penv{ENABLE_ALL_PRESETS}",
+                "rhs": "true"
+            }
+        },
+        {
+            "name": "windows",
+            "hidden": true,
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            }
+        },
+        {
+            "name": "linux",
+            "hidden": true,
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Linux"
+            }
+        },
+        {
+            "name": "release",
+            "hidden": true,
+            "configuration": "Release"
+        },
+        {
+            "name": "debug",
+            "hidden": true,
+            "configuration": "Debug"
+        },
+        {
+            "name": "windows-x86-32-debug",
+            "configurePreset": "windows-x86-32-debug",
+            "inherits": [
+                "debug",
+                "windows",
+                "default"
+            ]
+        },
+        {
+            "name": "windows-x86-32-release",
+            "configurePreset": "windows-x86-32-release",
+            "inherits": [
+                "release",
+                "windows",
+                "default"
+            ]
+        },
+        {
+            "name": "windows-x86-64-debug",
+            "configurePreset": "windows-x86-64-debug",
+            "inherits": [
+                "debug",
+                "windows",
+                "default"
+            ]
+        },
+        {
+            "name": "windows-x86-64-release",
+            "configurePreset": "windows-x86-64-release",
+            "inherits": [
+                "release",
+                "windows",
+                "default"
+            ]
+        },
+        {
+            "name": "windows-x86-64-clang",
+            "configurePreset": "windows-x86-64-clang",
+            "inherits": [
+                "debug",
+                "windows",
+                "default"
+            ]
+        },
+        {
+            "name": "windows-x86-64-coverage",
+            "configurePreset": "windows-x86-64-coverage",
+            "inherits": [
+                "debug",
+                "windows",
+                "default"
+            ]
+        },
+        {
+            "name": "windows-x86-64-static-analysis",
+            "configurePreset": "windows-x86-64-static-analysis",
+            "inherits": [
+                "debug",
+                "windows",
+                "default"
+            ]
+        },
+        {
+            "name": "linux-x86-64-debug",
+            "configurePreset": "linux-x86-64-debug",
+            "inherits": [
+                "debug",
+                "linux",
+                "default"
+            ]
+        },
+        {
+            "name": "linux-x86-64-release",
+            "configurePreset": "linux-x86-64-release",
+            "inherits": [
+                "release",
+                "linux",
+                "default"
+            ]
+        },
+        {
+            "name": "linux-x86-32-debug",
+            "configurePreset": "linux-x86-32-debug",
+            "inherits": [
+                "debug",
+                "linux",
+                "default"
+            ]
+        },
+        {
+            "name": "linux-x86-32-release",
+            "configurePreset": "linux-x86-32-release",
+            "inherits": [
+                "release",
+                "linux",
+                "default"
+            ]
+        },
+        {
+            "name": "linux-x86-64-static-analysis",
+            "configurePreset": "linux-x86-64-static-analysis",
+            "inherits": [
+                "debug",
+                "linux",
+                "default"
+            ]
+        }
+    ]
+}
