@@ -21,13 +21,8 @@ if(NOT EXISTS ${VCPKG_ROOT}/README.md)
     message(FATAL_ERROR "***** FATAL ERROR: Could not clone vcpkg *****")
 endif()
 
-if(WIN32)
-    set(VCPKG_EXEC ${VCPKG_ROOT}/vcpkg.exe)
-    set(VCPKG_BOOTSTRAP ${VCPKG_ROOT}/bootstrap-vcpkg.bat)
-else()
-    set(VCPKG_EXEC ${VCPKG_ROOT}/vcpkg)
-    set(VCPKG_BOOTSTRAP ${VCPKG_ROOT}/bootstrap-vcpkg.sh)
-endif()
+set(VCPKG_EXEC ${VCPKG_ROOT}/vcpkg.exe)
+set(VCPKG_BOOTSTRAP ${VCPKG_ROOT}/bootstrap-vcpkg.bat)
 
 if(NOT EXISTS ${VCPKG_EXEC})
     message("Bootstrapping vcpkg in ${VCPKG_ROOT}")
@@ -38,26 +33,14 @@ if(NOT EXISTS ${VCPKG_EXEC})
     message(FATAL_ERROR "***** FATAL ERROR: Could not bootstrap vcpkg *****")
 endif()
 
-if(WIN32)
-    if(DEFINED CMAKE_GENERATOR_PLATFORM AND CMAKE_GENERATOR_PLATFORM)
-        if(CMAKE_GENERATOR_PLATFORM STREQUAL "Win32")
-            set(VCPKG_TARGET_TRIPLET "x86-windows" CACHE STRING "")
-        else()
-            set(VCPKG_TARGET_TRIPLET "${CMAKE_GENERATOR_PLATFORM}-windows" CACHE STRING "")
-        endif()
+if(DEFINED CMAKE_GENERATOR_PLATFORM AND CMAKE_GENERATOR_PLATFORM)
+    if(CMAKE_GENERATOR_PLATFORM STREQUAL "Win32")
+        set(VCPKG_TARGET_TRIPLET "x86-windows" CACHE STRING "")
     else()
-        set(VCPKG_TARGET_TRIPLET "x64-windows" CACHE STRING "" )
+        set(VCPKG_TARGET_TRIPLET "${CMAKE_GENERATOR_PLATFORM}-windows" CACHE STRING "")
     endif()
-elseif(LINUX)
-    # CMAKE_SYSTEM_PROCESSOR isn't populated until the toolchain file runs during
-    # project(), which is too late to pick the triplet vcpkg's manifest-mode
-    # install resolves against, so infer the target architecture from the
-    # toolchain file path instead.
-    if(CMAKE_TOOLCHAIN_FILE MATCHES "linux-x86-32")
-        set(VCPKG_TARGET_TRIPLET "x86-linux" CACHE STRING "")
-    else()
-        set(VCPKG_TARGET_TRIPLET "x64-linux" CACHE STRING "")
-    endif()
+else()
+    set(VCPKG_TARGET_TRIPLET "x64-windows" CACHE STRING "" )
 endif()
 
 # Dependencies (GTest, fmt, spdlog) are declared in vcpkg.json and installed
@@ -94,7 +77,7 @@ enable_testing()
 add_subdirectory(src)
 add_subdirectory(test)
 
-# --- Static analysis (windows/linux -x86-64-static-analysis presets) ---
+# --- Static analysis (windows-x86-64-static-analysis preset) ---
 # Falls back to the vendored copy in scripts/ if run-clang-tidy isn't found
 # alongside clang-tidy.exe (not every VS "C++ Clang tools for Windows"
 # component version ships the wrapper script).
