@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 4.2)
 
 project(ModernCppApp C CXX)
 
+add_subdirectory(module)
 add_subdirectory(utils)
 
 file(GLOB SRC_FILES 
