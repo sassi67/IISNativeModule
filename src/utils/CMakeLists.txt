@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 4.2)
 
-project(ModernCppUtils C CXX)
+project(IISNativeModuleUtils C CXX)
 
 file(GLOB UTILS_FILES 
     "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp"

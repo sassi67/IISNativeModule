@@ -2,7 +2,7 @@
 namespace utils {
 
 auto Smoke::getHello() -> std::string {
-    return "Hello ModernCpp!";
+    return "Hello IISNativeModule!";
 }
 
 }

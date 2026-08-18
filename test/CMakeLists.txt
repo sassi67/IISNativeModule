@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 4.2)
 
-project(ModernCppTest)
+project(IISNativeModuleTest)
 
 file(GLOB TEST_FILES 
     "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp"
@@ -12,7 +12,7 @@ file(GLOB TEST_FILES
 add_executable(${PROJECT_NAME} ${TEST_FILES})
 target_link_libraries(${PROJECT_NAME} PRIVATE
     GTest::gtest 
-    ModernCppUtils
+    IISNativeModuleUtils
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE 

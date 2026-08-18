@@ -4,6 +4,6 @@
 namespace utils {
     TEST(TestUtils, TestSmokeGetHello)
     {
-        EXPECT_EQ("Hello ModernCpp!", utils::Smoke::getHello());
+        EXPECT_EQ("Hello IISNativeModule!", utils::Smoke::getHello());
     }
 }

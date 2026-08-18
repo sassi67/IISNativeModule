@@ -10,7 +10,7 @@ cd /d "%~dp0.."
 
 set PRESET=windows-x86-64-coverage
 set BUILD_DIR=_build\%PRESET%
-set TEST_EXE=%BUILD_DIR%\test\Debug\ModernCppTest.exe
+set TEST_EXE=%BUILD_DIR%\test\Debug\IISNativeModuleTest.exe
 REM Must be absolute: ctest runs each test with its cwd set to the test's
 REM own binary dir, not the repo root, so a relative path here would land
 REM %BUILD_DIR% underneath _build\%PRESET%\test\ instead.

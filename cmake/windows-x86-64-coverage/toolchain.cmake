@@ -8,8 +8,8 @@ set(CMAKE_C_COMPILER "$ENV{ProgramFiles}/Microsoft Visual Studio/18/Community/VC
 set(CMAKE_CXX_COMPILER "$ENV{ProgramFiles}/Microsoft Visual Studio/18/Community/VC/Tools/Llvm/x64/bin/clang-cl.exe" CACHE STRING "")
 
 if(NOT DEFINED ENV{VCPKG_ROOT})
-    get_filename_component(MODERNCPP_SOURCE_DIR "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE)
-    set(VCPKG_ROOT ${MODERNCPP_SOURCE_DIR}/.vcpkg)
+    get_filename_component(IISNATIVEMODULE_SOURCE_DIR "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE)
+    set(VCPKG_ROOT ${IISNATIVEMODULE_SOURCE_DIR}/.vcpkg)
 else()
     set(VCPKG_ROOT $ENV{VCPKG_ROOT})
 endif()
