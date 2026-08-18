@@ -4,11 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project overview
 
-A C++20 example/learning project demonstrating modern C++ features, built with CMake and vcpkg. Dependencies: GTest, fmt, spdlog.
+A native HTTP module for IIS to experiment with new ways of unit testing. C++20, built with CMake and vcpkg. Dependencies: GTest, fmt, spdlog.
 
 ## Build system
 
-Dependencies are managed via **vcpkg**, bootstrapped automatically by the top-level `CMakeLists.txt`: if `VCPKG_ROOT` is unset, it clones vcpkg into `.vcpkg/`, bootstraps it, and installs `MODERNCPP_DEPENDENCIES` (GTest, fmt, spdlog) before `project()` is even declared. This means the *first* configure can take a while and requires network/git access; subsequent configures just auto-update the vcpkg checkout via `git pull`.
+Dependencies are managed via **vcpkg**, bootstrapped automatically by the top-level `CMakeLists.txt`: if `VCPKG_ROOT` is unset, it clones vcpkg into `.vcpkg/` and bootstraps it before `project()` is even declared; the dependencies declared in `vcpkg.json` (GTest, fmt, spdlog) are then installed by vcpkg's manifest-mode resolution during configure. This means the *first* configure can take a while and requires network/git access; subsequent configures just auto-update the vcpkg checkout via `git pull`.
 
 Building uses **CMake presets** (`CMakePresets.json`), targeting Visual Studio 2026 (`vs2026` generator) on Windows only — this project builds on Windows exclusively. Presets combine an architecture with a configuration:
 
@@ -32,16 +32,16 @@ ctest --preset windows-x86-64-debug
 
 Build artifacts land in `_build/<presetName>/`.
 
-Run a single test binary directly with GTest filters (there is currently one test target, `ModernCppTest`, registered with CTest as a single opaque test — use the binary's own filter flag to select individual cases):
+Run a single test binary directly with GTest filters (there is currently one test target, `IISNativeModuleTest`, registered with CTest as a single opaque test — use the binary's own filter flag to select individual cases):
 
 ```powershell
-_build\windows-x86-64-debug\test\Debug\ModernCppTest.exe --gtest_filter=TestUtils.TestSmokeGetHello
+_build\windows-x86-64-debug\test\Debug\IISNativeModuleTest.exe --gtest_filter=TestUtils.TestSmokeGetHello
 ```
 
 Run the app:
 
 ```powershell
-_build\windows-x86-64-debug\src\Debug\ModernCppApp.exe
+_build\windows-x86-64-debug\src\Debug\IISNativeModuleApp.exe
 ```
 
 ### Static analysis (`windows-x86-64-static-analysis` preset)
@@ -67,11 +67,11 @@ Report lands at `_build\windows-x86-64-coverage\coverage-report\index.html`.
 
 ## Architecture
 
-- **`src/`** — the main application (`CMakeLists.txt` defines target `ModernCppApp`, project `ModernCppApp`). Sources are glob-collected (`*.cpp`/`*.h` in the directory), so **new files under `src/` are picked up automatically at the next CMake configure** — no need to edit `src/CMakeLists.txt` when adding a file there.
+- **`src/`** — the main application (`CMakeLists.txt` defines target `IISNativeModuleApp`, project `IISNativeModuleApp`). Sources are glob-collected (`*.cpp`/`*.h` in the directory), so **new files under `src/` are picked up automatically at the next CMake configure** — no need to edit `src/CMakeLists.txt` when adding a file there.
   - `src/controller/`, `src/model/`, `src/view/` are currently empty placeholder directories (each holds only a `.gitignore`), suggesting an intended MVC split that hasn't been built out yet.
-  - `src/utils/` is a separate static library target, `ModernCppUtils` (project `ModernCppUtils`), also glob-built and linked into both the app and the test binary. New utility files go here and are picked up the same way.
+  - `src/utils/` is a separate static library target, `IISNativeModuleUtils` (project `IISNativeModuleUtils`), also glob-built and linked into both the app and the test binary. New utility files go here and are picked up the same way.
   - `src/module/` is the IIS native module itself: target `IISNativeModule`, a `SHARED` library (DLL) that exports `RegisterModule` via `iis_native_module.def`. `iis::HttpModule` (`http_module.h/.cpp`) overrides every overridable `CHttpModule` method with skeleton bodies returning `RQ_NOTIFICATION_CONTINUE`; `iis::HttpModuleFactory` creates instances; `register_module.cpp` currently subscribes to no notifications (`SetRequestNotifications(factory, 0, 0)`) — add `RQ_*` flags there as methods gain real implementations.
-- **`test/`** — GTest-based tests, target/project `ModernCppTest`. Globs both `test/*.cpp` and `test/utils/*.cpp`, and links `ModernCppUtils`. `test/main.cpp` is a standard GTest `main()` running `RUN_ALL_TESTS()`. Mirror `src/utils/` layout under `test/utils/` for new utility tests (see `test/utils/smoke_test.cpp` as the existing example — one GTest `TEST` per behavior, wrapped in the same namespace as the code under test).
+- **`test/`** — GTest-based tests, target/project `IISNativeModuleTest`. Globs both `test/*.cpp` and `test/utils/*.cpp`, and links `IISNativeModuleUtils`. `test/main.cpp` is a standard GTest `main()` running `RUN_ALL_TESTS()`. Mirror `src/utils/` layout under `test/utils/` for new utility tests (see `test/utils/smoke_test.cpp` as the existing example — one GTest `TEST` per behavior, wrapped in the same namespace as the code under test).
   - Test includes reference library headers as `<utils/smoke.h>` because `test/CMakeLists.txt` adds `test/../src` (i.e. `src/`) to the include path — so app/test code both include utils headers via the `utils/` prefix, not relative paths.
 - Because both `src/` and `src/utils/` (and `test/`) use `file(GLOB ...)`, CMake must be **re-run** (re-configure, not just rebuild) after adding or removing source files for them to be picked up — GLOB results are cached at configure time.
 
@@ -84,4 +84,4 @@ Report lands at `_build\windows-x86-64-coverage\coverage-report\index.html`.
 
 - Minimum CMake version required is 4.2 (unusually new — verify your local CMake before assuming a configure failure is a code issue). CI installs `cmake >= 4.2` explicitly since GitHub-hosted runners don't have it preinstalled.
 - The toolchain pins Visual Studio 2026 (`Visual Studio 18 2026`); local build presets additionally pin an exact MSVC toolset version (`14.44.35207` for build presets, `host=x64,version=14.50` for the static-analysis configure preset) — build failures on other VS/MSVC versions are expected without adjusting `CMakePresets.json`. CI sidesteps this (see above).
-- `ModernCppUtils` (`src/utils/CMakeLists.txt`) is declared `add_library(... SHARED STATIC ...)` — despite the name, `STATIC` is the effective/last-wins keyword, so it builds as a static library.
+- `IISNativeModuleUtils` (`src/utils/CMakeLists.txt`) is declared `add_library(... SHARED STATIC ...)` — despite the name, `STATIC` is the effective/last-wins keyword, so it builds as a static library.

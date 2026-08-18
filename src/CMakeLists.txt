@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 4.2)
 
-project(ModernCppApp C CXX)
+project(IISNativeModuleApp C CXX)
 
 add_subdirectory(module)
 add_subdirectory(utils)
@@ -12,7 +12,7 @@ file(GLOB SRC_FILES
 
 add_executable(${PROJECT_NAME} ${SRC_FILES})
 target_link_libraries(${PROJECT_NAME} PRIVATE
-    ModernCppUtils 
+    IISNativeModuleUtils 
     fmt::fmt
     spdlog::spdlog
 )

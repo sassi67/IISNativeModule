@@ -48,7 +48,7 @@ endif()
 # toolchain.cmake) as part of manifest-mode dependency resolution -- no
 # manual `vcpkg install` step needed.
 
-project(ModernCppRoot LANGUAGES C CXX)
+project(IISNativeModuleRoot LANGUAGES C CXX)
 
 # Enforce C++20 for C++ targets
 set(CMAKE_CXX_STANDARD 20)
