@@ -1,5 +1,5 @@
-#ifndef HTTP_MODULE_FACTORY_H_
-#define HTTP_MODULE_FACTORY_H_
+#ifndef IIS_REQUEST_LEVEL_MODULE_FACTORY_H_
+#define IIS_REQUEST_LEVEL_MODULE_FACTORY_H_
 
 #define _WINSOCKAPI_
 #include <windows.h>
@@ -7,9 +7,9 @@
 #include <httpserv.h>
 
 namespace iis {
-    // Creates an HttpModule instance for each request IIS dispatches
-    // to this module.
-    class HttpModuleFactory : public IHttpModuleFactory {
+    // Creates an IISRequestLevelModule instance for each request IIS
+    // dispatches to this module.
+    class IISRequestLevelModuleFactory : public IHttpModuleFactory {
     public:
         auto GetHttpModule(
             _Outptr_ CHttpModule ** ppModule,
@@ -18,4 +18,4 @@ namespace iis {
         auto Terminate() -> VOID override;
     };
 }
-#endif // HTTP_MODULE_FACTORY_H_
+#endif // IIS_REQUEST_LEVEL_MODULE_FACTORY_H_
