@@ -1,15 +1,15 @@
-#include "http_module_factory.h"
+#include "iis_request_level_module_factory.h"
 
 #include <new>
 
-#include "http_module.h"
+#include "iis_request_level_module.h"
 
 namespace iis {
 
-auto HttpModuleFactory::GetHttpModule(
+auto IISRequestLevelModuleFactory::GetHttpModule(
     _Outptr_ CHttpModule ** ppModule,
     _In_ IModuleAllocator * /*pAllocator*/) -> HRESULT {
-    auto * pModule = new (std::nothrow) HttpModule();
+    auto * pModule = new (std::nothrow) IISRequestLevelModule();
     if (pModule == nullptr) {
         return HRESULT_FROM_WIN32(ERROR_NOT_ENOUGH_MEMORY);
     }
@@ -17,7 +17,7 @@ auto HttpModuleFactory::GetHttpModule(
     return S_OK;
 }
 
-auto HttpModuleFactory::Terminate() -> VOID {
+auto IISRequestLevelModuleFactory::Terminate() -> VOID {
     delete this;
 }
 
