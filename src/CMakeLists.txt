@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 4.2)
 
 project(IISNativeModuleApp C CXX)
 
+add_subdirectory(core)
 add_subdirectory(module)
 add_subdirectory(utils)
 

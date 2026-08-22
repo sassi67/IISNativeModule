@@ -13,3 +13,4 @@ add_library(${PROJECT_NAME} SHARED
     ${MODULE_FILES}
     "${CMAKE_CURRENT_SOURCE_DIR}/iis_native_module.def"
 )
+target_link_libraries(${PROJECT_NAME} PRIVATE IISNativeModuleCore)

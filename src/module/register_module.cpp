@@ -5,7 +5,7 @@
 
 #include <new>
 
-#include "iis_request_level_module_factory.h"
+#include "IISRequestLevelModuleFactory.h"
 
 // Entry point IIS calls when it loads the module DLL; exported via
 // iis_native_module.def.
