@@ -35,13 +35,7 @@ Build artifacts land in `_build/<presetName>/`.
 Run a single test binary directly with GTest filters (there is currently one test target, `IISNativeModuleTest`, registered with CTest as a single opaque test — use the binary's own filter flag to select individual cases):
 
 ```powershell
-_build\windows-x86-64-debug\test\Debug\IISNativeModuleTest.exe --gtest_filter=TestUtils.TestSmokeGetHello
-```
-
-Run the app:
-
-```powershell
-_build\windows-x86-64-debug\src\Debug\IISNativeModuleApp.exe
+_build\windows-x86-64-debug\test\Debug\IISNativeModuleTest.exe --gtest_filter=TestCore.TestModuleHandlerOnBeginRequestForbiddenUrl
 ```
 
 ### Static analysis (`windows-x86-64-static-analysis` preset)
@@ -67,13 +61,12 @@ Report lands at `_build\windows-x86-64-coverage\coverage-report\index.html`.
 
 ## Architecture
 
-- **`src/`** — the main application (`CMakeLists.txt` defines target `IISNativeModuleApp`, project `IISNativeModuleApp`). Sources are glob-collected (`*.cpp`/`*.h` in the directory), so **new files under `src/` are picked up automatically at the next CMake configure** — no need to edit `src/CMakeLists.txt` when adding a file there.
-  - `src/utils/` is a separate static library target, `IISNativeModuleUtils` (project `IISNativeModuleUtils`), also glob-built and linked into both the app and the test binary. New utility files go here and are picked up the same way.
+- **`src/`** — holds no sources of its own; `src/CMakeLists.txt` only aggregates the two real targets below. There is no application executable: the deliverable is the DLL that IIS loads.
   - `src/core/` is the IIS/Windows-independent layer: static library target `IISNativeModuleCore` (namespace `core`), exporting its headers as `<core/...>` via a PUBLIC include dir. It holds `Verdict` (the platform-free mirror of `REQUEST_NOTIFICATION_STATUS`), the interfaces `IRequest`/`IResponse`/`IContext`/`IEventProvider`/`IModule` mirroring their IIS counterparts, and `ModuleHandler` — the actual request logic (403 + reason `Forbidden by IISRequestLevelModule` for cooked URL paths ending in `/forbidden`, `X-IISRequestLevelModule: 1` header otherwise). Nothing in this directory may include Windows or IIS headers; HRESULT-shaped values travel as `std::int32_t`.
-  - `src/module/` is the IIS native module itself: target `IISNativeModule`, a `SHARED` library (DLL) that exports `RegisterModule` via `iis_native_module.def` and links `IISNativeModuleCore`. Files here — as in `src/core` and `test/core` — are named after the class they hold (`IISRequestLevelModule.h/.cpp` etc., PascalCase; only `src/utils` remains snake_case). `iis::IISRequestLevelModule` is a thin adapter: its constructor takes a non-owning `core::IModule*`, and `OnBeginRequest` wraps the live IIS objects in the `IISContext`/`IISRequest`/`IISResponse`/`IISEventProvider` adapters (one file pair per class), delegates to the injected module, and maps the returned `Verdict` back to a `REQUEST_NOTIFICATION_STATUS`. `iis::IISRequestLevelModuleFactory` owns the shared (stateless) `core::ModuleHandler` and injects it into every instance it creates; `register_module.cpp` subscribes to `RQ_BEGIN_REQUEST` only — add further `RQ_*` flags there as methods gain implementations.
-- **`test/`** — GTest-based tests, target/project `IISNativeModuleTest`. Globs `test/*.cpp`, `test/core/*.cpp`, and `test/utils/*.cpp`, and links `IISNativeModuleCore` and `IISNativeModuleUtils`. `test/main.cpp` is a standard GTest `main()` running `RUN_ALL_TESTS()`. Mirror the `src/` layout under `test/` for new tests (one GTest `TEST` per behavior, wrapped in the same namespace as the code under test). `test/core/ModuleHandlerTest.cpp` exercises `core::ModuleHandler` through hand-rolled mocks of the core interfaces — the pattern to follow for testing module logic without IIS.
-  - Test includes reference library headers as `<utils/smoke.h>` because `test/CMakeLists.txt` adds `test/../src` (i.e. `src/`) to the include path — so app/test code both include utils headers via the `utils/` prefix, not relative paths.
-- Because both `src/` and `src/utils/` (and `test/`) use `file(GLOB ...)`, CMake must be **re-run** (re-configure, not just rebuild) after adding or removing source files for them to be picked up — GLOB results are cached at configure time.
+  - `src/module/` is the IIS native module itself: target `IISNativeModule`, a `SHARED` library (DLL) that exports `RegisterModule` via `iis_native_module.def` and links `IISNativeModuleCore`. Files here — as in `src/core` and `test/core` — are named after the class they hold (`IISRequestLevelModule.h/.cpp` etc., PascalCase). `iis::IISRequestLevelModule` is a thin adapter: its constructor takes a non-owning `core::IModule*`, and `OnBeginRequest` wraps the live IIS objects in the `IISContext`/`IISRequest`/`IISResponse`/`IISEventProvider` adapters (one file pair per class), delegates to the injected module, and maps the returned `Verdict` back to a `REQUEST_NOTIFICATION_STATUS`. `iis::IISRequestLevelModuleFactory` owns the shared (stateless) `core::ModuleHandler` and injects it into every instance it creates; `register_module.cpp` subscribes to `RQ_BEGIN_REQUEST` only — add further `RQ_*` flags there as methods gain implementations.
+- **`test/`** — GTest-based tests, target/project `IISNativeModuleTest`. Globs `test/*.cpp` and `test/core/*.cpp`, and links `IISNativeModuleCore`. `test/main.cpp` is a standard GTest `main()` running `RUN_ALL_TESTS()`. Mirror the `src/` layout under `test/` for new tests (one GTest `TEST` per behavior, wrapped in the same namespace as the code under test). `test/core/ModuleHandlerTest.cpp` exercises `core::ModuleHandler` through hand-rolled mocks of the core interfaces — the pattern to follow for testing module logic without IIS.
+  - Tests include core headers as `<core/...>`, which resolves because `IISNativeModuleCore` exports `src/` as a PUBLIC include directory — not through any include path set on the test target itself.
+- Because every target uses `file(GLOB ...)`, CMake must be **re-run** (re-configure, not just rebuild) after adding or removing source files for them to be picked up — GLOB results are cached at configure time.
 
 ## CI (`.github/workflows/ci.yml`)
 
@@ -84,4 +77,4 @@ Report lands at `_build\windows-x86-64-coverage\coverage-report\index.html`.
 
 - Minimum CMake version required is 4.2 (unusually new — verify your local CMake before assuming a configure failure is a code issue). CI installs `cmake >= 4.2` explicitly since GitHub-hosted runners don't have it preinstalled.
 - The toolchain pins Visual Studio 2026 (`Visual Studio 18 2026`); local build presets additionally pin an exact MSVC toolset version (`14.44.35207` for build presets, `host=x64,version=14.50` for the static-analysis configure preset) — build failures on other VS/MSVC versions are expected without adjusting `CMakePresets.json`. CI sidesteps this (see above).
-- `IISNativeModuleUtils` (`src/utils/CMakeLists.txt`) is declared `add_library(... SHARED STATIC ...)` — despite the name, `STATIC` is the effective/last-wins keyword, so it builds as a static library.
+- `vcpkg.json` still declares `fmt` and `spdlog` (and the top-level `CMakeLists.txt` still `find_package`s them), but no target links them any more — they are kept available for future logging/formatting work.
