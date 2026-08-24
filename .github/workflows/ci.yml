@@ -22,8 +22,9 @@ jobs:
   # Note: an earlier attempt used ilammy/msvc-dev-cmd + Ninja to sidestep
   # generator-version matching entirely, but that action's environment
   # activation sets its own VCPKG_ROOT pointing at VS's bundled (non-git)
-  # vcpkg copy, which this repo's CMakeLists.txt then tries to `git pull`
-  # and fails. The VS generator doesn't need a pre-activated dev
+  # vcpkg copy — a user-managed checkout this repo's CMakeLists.txt
+  # neither pins nor updates, so builds there wouldn't use the audited
+  # pinned revision. The VS generator doesn't need a pre-activated dev
   # environment, so it doesn't hit that.
   #
   # Also: -DCMAKE_TOOLCHAIN_FILE can't point directly at
@@ -51,19 +52,23 @@ jobs:
             cxx: clang-cl
             toolset: "-T ClangCL"
 
+    # Third-party actions are pinned by commit SHA (tags are mutable, so
+    # a compromised action author could otherwise run arbitrary code in
+    # this workflow); Dependabot (.github/dependabot.yml) proposes pin
+    # updates.
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       # cmake_minimum_required(VERSION 4.2) is newer than what's preinstalled
       # on GitHub-hosted runners.
       - name: Install CMake >= 4.2
-        uses: lukka/get-cmake@latest
+        uses: lukka/get-cmake@fffaaafeea488556c2c12dad60690008bc1caacb # v4.4.2
         with:
-          cmakeVersion: "latest"
+          cmakeVersion: "4.4.2"
 
       - name: Cache vcpkg
-        uses: actions/cache@v4
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: |
             .vcpkg

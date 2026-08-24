@@ -18,6 +18,11 @@ HRESULT WINAPI RegisterModule(
         return HRESULT_FROM_WIN32(ERROR_NOT_ENOUGH_MEMORY);
     }
     // IISRequestLevelModule only implements OnBeginRequest, so that is
-    // the single request notification we subscribe to.
-    return pModuleInfo->SetRequestNotifications(pFactory, RQ_BEGIN_REQUEST, 0);
+    // the single request notification we subscribe to. IIS takes
+    // ownership of the factory only on success.
+    const HRESULT hr = pModuleInfo->SetRequestNotifications(pFactory, RQ_BEGIN_REQUEST, 0);
+    if (FAILED(hr)) {
+        delete pFactory;
+    }
+    return hr;
 }
