@@ -20,6 +20,13 @@ namespace {
 
     // Case-insensitive suffix check on the cooked URL path, which
     // carries the path without the query string.
+    //
+    // SECURITY NOTE: this is demo logic, not an access-control
+    // mechanism. A suffix-only match doesn't block a subtree
+    // ("/forbidden/", "/forbidden/x" pass), and std::towlower is
+    // locale-dependent (invariant ASCII folding is what a security
+    // comparison would need). Replace the matching semantics before
+    // building any real ACL on this.
     auto EndsWithForbidden(const RawHttpRequest * rawRequest) -> bool {
         if (rawRequest == nullptr) {
             return false;

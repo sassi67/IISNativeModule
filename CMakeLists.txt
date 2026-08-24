@@ -1,24 +1,65 @@
 cmake_minimum_required(VERSION 4.2)
 
-# if the environment variable VCPKG_ROOT is not set
-# default to the local .vcpkg directory and clone vcpkg if it doesn't exist
+# vcpkg checkout pin: the same commit as the builtin-baseline in
+# vcpkg.json, so the tool, its scripts, and the port baseline all come
+# from one audited revision (supply-chain: never execute unpinned,
+# auto-updated code at configure time). To bump vcpkg, update BOTH the
+# baseline in vcpkg.json and this pin to the new commit, then wipe
+# .vcpkg/ (or let the checkout below fetch it).
+set(VCPKG_PINNED_COMMIT "d92484ed3c5020c6679d095ad3e5add907887b62")
+
+# If the environment variable VCPKG_ROOT is set, that checkout is
+# user-managed: no git operations are performed on it (only the
+# bootstrap-if-missing below). Otherwise a local .vcpkg clone is
+# created and pinned to VCPKG_PINNED_COMMIT.
 if(NOT DEFINED ENV{VCPKG_ROOT})
     set(VCPKG_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/.vcpkg)
+    set(VCPKG_CHECKOUT_IS_MANAGED TRUE)
 else()
     set(VCPKG_ROOT $ENV{VCPKG_ROOT})
+    set(VCPKG_CHECKOUT_IS_MANAGED FALSE)
 endif()
 
 if(NOT EXISTS ${VCPKG_ROOT})
+    if(NOT VCPKG_CHECKOUT_IS_MANAGED)
+        message(FATAL_ERROR "***** FATAL ERROR: VCPKG_ROOT points at a non-existing path: ${VCPKG_ROOT} *****")
+    endif()
     message("Cloning vcpkg in ${VCPKG_ROOT}")
     execute_process(COMMAND git clone https://github.com/Microsoft/vcpkg.git ${VCPKG_ROOT})
-else()
-    # The following command has no effect if the vcpkg repository is in a detached head state.
-    message("Auto-updating vcpkg in ${VCPKG_ROOT}")
-    execute_process(COMMAND git pull WORKING_DIRECTORY ${VCPKG_ROOT})
 endif()
 
 if(NOT EXISTS ${VCPKG_ROOT}/README.md)
     message(FATAL_ERROR "***** FATAL ERROR: Could not clone vcpkg *****")
+endif()
+
+if(VCPKG_CHECKOUT_IS_MANAGED)
+    execute_process(
+        COMMAND git rev-parse HEAD
+        WORKING_DIRECTORY ${VCPKG_ROOT}
+        OUTPUT_VARIABLE VCPKG_CURRENT_COMMIT
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+    if(NOT VCPKG_CURRENT_COMMIT STREQUAL VCPKG_PINNED_COMMIT)
+        message("Pinning vcpkg to ${VCPKG_PINNED_COMMIT}")
+        execute_process(
+            COMMAND git -c advice.detachedHead=false checkout ${VCPKG_PINNED_COMMIT}
+            WORKING_DIRECTORY ${VCPKG_ROOT}
+            RESULT_VARIABLE VCPKG_CHECKOUT_RESULT
+        )
+        if(NOT VCPKG_CHECKOUT_RESULT EQUAL 0)
+            # Commit not present locally (e.g. the pin moved forward
+            # since the clone): fetch it explicitly, then re-checkout.
+            execute_process(COMMAND git fetch origin ${VCPKG_PINNED_COMMIT} WORKING_DIRECTORY ${VCPKG_ROOT})
+            execute_process(
+                COMMAND git -c advice.detachedHead=false checkout ${VCPKG_PINNED_COMMIT}
+                WORKING_DIRECTORY ${VCPKG_ROOT}
+                RESULT_VARIABLE VCPKG_CHECKOUT_RESULT
+            )
+        endif()
+        if(NOT VCPKG_CHECKOUT_RESULT EQUAL 0)
+            message(FATAL_ERROR "***** FATAL ERROR: Could not pin vcpkg to ${VCPKG_PINNED_COMMIT} *****")
+        endif()
+    endif()
 endif()
 
 set(VCPKG_EXEC ${VCPKG_ROOT}/vcpkg.exe)
@@ -54,6 +95,19 @@ project(IISNativeModuleRoot LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED YES)
 set(CMAKE_CXX_EXTENSIONS OFF)
+
+# --- Binary hardening ---
+# The module DLL is network-facing native code inside w3wp.exe, so it
+# gets Control Flow Guard (compile+link; supported by both cl and
+# clang-cl) and /sdl (extra compile-time and runtime security checks;
+# MSVC-only — clang-cl doesn't implement it). Applied globally so every
+# translation unit linked into the DLL is instrumented; /GS, ASLR, and
+# DEP are already MSVC defaults.
+add_compile_options(
+    "$<$<CXX_COMPILER_ID:MSVC>:/sdl>"
+    "/guard:cf"
+)
+add_link_options("/GUARD:CF")
 
 # --- Coverage flags (applied only when ENABLE_COVERAGE is ON) ---
 option(ENABLE_COVERAGE "Enable code coverage instrumentation" OFF)
