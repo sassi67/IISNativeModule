@@ -130,6 +130,7 @@ enable_testing()
 
 add_subdirectory(src)
 add_subdirectory(test)
+add_subdirectory(bench)
 
 # --- Static analysis (windows-x86-64-static-analysis preset) ---
 # Falls back to the vendored copy in scripts/ if run-clang-tidy isn't found
