@@ -10,22 +10,25 @@ namespace iis {
 auto IISRequestLevelModule::OnBeginRequest(
     _In_ IHttpContext * pHttpContext,
     _In_ IHttpEventProvider * pProvider) -> REQUEST_NOTIFICATION_STATUS {
-    if (module_ == nullptr || pHttpContext == nullptr) {
+    if (handler_ == nullptr || pHttpContext == nullptr) {
         return RQ_NOTIFICATION_CONTINUE;
     }
 
     // IIS notification methods must not throw: an escaping C++ exception
-    // unwinds into the native pipeline and crashes the worker process
-    // (the adapters allocate, so std::bad_alloc is possible under memory
-    // pressure). Failing open (Continue) is a deliberate tradeoff for
-    // this demo rule: a dropped forbidden-check beats taking down the
-    // whole app pool. catch(...) under /EHsc catches C++ exceptions
-    // only, not SEH.
+    // unwinds into the native pipeline and crashes the worker process.
+    // The adapters no longer allocate, so there is no longer a plausible
+    // throw on this path, but the boundary stays — it is the contract for
+    // every notification, and future logic must not be able to break it.
+    // Failing open (Continue) is a deliberate tradeoff for this demo
+    // rule: a dropped forbidden-check beats taking down the whole app
+    // pool. catch(...) under /EHsc catches C++ exceptions only, not SEH.
     try {
         IISContext context{pHttpContext};
         IISEventProvider provider{pProvider};
 
-        const core::Verdict verdict = module_->OnBeginRequest(
+        // Resolved at compile time against IISContext/IISEventProvider,
+        // so this whole chain inlines with no virtual dispatch.
+        const core::Verdict verdict = handler_->OnBeginRequest(
             &context,
             pProvider != nullptr ? &provider : nullptr);
 

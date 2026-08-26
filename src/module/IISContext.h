@@ -6,26 +6,22 @@
 #include <sal.h>
 #include <httpserv.h>
 
-#include <core/IContext.h>
+#include <core/Context.h>
 
 #include "IISRequest.h"
 #include "IISResponse.h"
 
 namespace iis {
-    // Adapter translating a live IHttpContext into core::IContext for
-    // the duration of one notification. Both member adapters tolerate a
-    // null IIS pointer at construction; GetRequest/GetResponse only
-    // hand them out when it is non-null.
-    class IISContext final : public core::IContext {
+    // Adapter satisfying core::Context over a live IHttpContext, for the
+    // duration of one notification. Both member adapters tolerate a null
+    // IIS pointer at construction; GetRequest/GetResponse only hand them
+    // out when it is non-null.
+    class IISContext final {
     public:
-        explicit IISContext(_In_ IHttpContext * pHttpContext)
-            : pRequest_{pHttpContext->GetRequest()},
-              request_{pRequest_},
-              pResponse_{pHttpContext->GetResponse()},
-              response_{pResponse_} {}
+        explicit IISContext(_In_ IHttpContext * pHttpContext);
 
-        auto GetRequest() -> core::IRequest * override;
-        auto GetResponse() -> core::IResponse * override;
+        auto GetRequest() -> IISRequest *;
+        auto GetResponse() -> IISResponse *;
 
     private:
         IHttpRequest * pRequest_;
@@ -33,5 +29,10 @@ namespace iis {
         IHttpResponse * pResponse_;
         IISResponse response_;
     };
+
+    // Fails here, with a readable message, if the class ever stops
+    // matching the contract the handler template expects. Transitively
+    // checks IISRequest and IISResponse too.
+    static_assert(core::Context<IISContext>);
 }
 #endif // IIS_CONTEXT_H_
